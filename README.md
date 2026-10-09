@@ -20,6 +20,7 @@ A personal homepage uses a repository named `YOUR_USERNAME.github.io`; a project
 - `assets/site.css`: shared dark appearance and navigation.
 - `tools/sim-mask-alignment/index.html`: equal-hole clipping comparison tool.
 - `tools/sim-mask-single-view/index.html`: original single-view simulator.
+- `tools/waveplates/index.html`: quarter-wave and half-wave polarization simulator.
 - `source/`: editable visualization fragments.
 
 To add a tool, put its standalone page in `tools/TOOL_NAME/index.html` and add a link on the homepage. The existing exports include the simulator code and styles and require no server-side code.
@@ -27,3 +28,5 @@ To add a tool, put its standalone page in `tools/TOOL_NAME/index.html` and add a
 These are geometric mask-plane models with illustrative normalized dimensions, rather than wave-optics predictions of the downstream screen image.
 
 Commit and push changes to `main` to update the website. No build or package installation is required.
+
+The wave-plate tool models an ideal lossless retarder. Input/output field traces use the plate’s fast and slow axes; advancing time shows a field oscillation at a fixed point, not a photon trajectory.

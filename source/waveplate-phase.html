@@ -1,0 +1,97 @@
+<div id="waveplate-phase">
+  <style>
+    #waveplate-phase { color:var(--foreground); }
+    #waveplate-phase .wave-svg { display:block; width:100%; }
+    #waveplate-phase .wave-svg text { fill:var(--foreground); font-size:var(--font-size-base); font-weight:400; }
+    #waveplate-phase .wave-svg .small { font-size:calc(var(--font-size-base) * .86); }
+  </style>
+  <h3>Wave plates and polarization</h3>
+  <div class="viz-controls" role="group" aria-label="Transformation examples">
+    <button class="btn" data-example="linear-circular" type="button">Linear → circular</button>
+    <button class="btn" data-example="circular-linear" type="button">Circular → linear</button>
+    <button class="btn" data-example="half-wave" type="button">Half-wave · rotate linear</button>
+    <button class="btn" data-example="circular-flip" type="button">Half-wave · reverse circular</button>
+  </div>
+  <div class="viz-controls" role="group" aria-label="Input polarization">
+    <button class="btn" data-input="linear" type="button" aria-pressed="true">Linear input</button>
+    <button class="btn" data-input="circular" type="button" aria-pressed="false">Circular input</button>
+  </div>
+  <label class="form-label" for="waveplate-alpha">Input linear polarization relative to fast axis: <span id="waveplate-alpha-value" class="tabular-nums">45°</span></label>
+  <input id="waveplate-alpha" class="form-range" type="range" min="0" max="90" step="0.5" value="45">
+  <div class="viz-controls" role="group" aria-label="Relative phase delay">
+    <button class="btn" data-delay="0" type="button" aria-pressed="false">No delay · 0°</button>
+    <button class="btn" data-delay="90" type="button" aria-pressed="true">Quarter-wave · 90°</button>
+    <button class="btn" data-delay="180" type="button" aria-pressed="false">Half-wave · 180°</button>
+  </div>
+  <div class="viz-row"><button class="btn" id="waveplate-advance" type="button">Advance ⅛ cycle</button><span id="waveplate-time" class="text-small tabular-nums">Time: 0/8 cycle</span></div>
+  <svg class="wave-svg" role="img" aria-labelledby="waveplate-title waveplate-desc"></svg>
+  <div id="waveplate-result" class="text-small" aria-live="polite"></div>
+  <script>
+  (()=>{
+    const root=document.getElementById('waveplate-phase'),svg=root.querySelector('.wave-svg');
+    const slider=root.querySelector('#waveplate-alpha'),alphaText=root.querySelector('#waveplate-alpha-value');
+    const result=root.querySelector('#waveplate-result'),timeText=root.querySelector('#waveplate-time');
+    const buttons=[...root.querySelectorAll('[data-delay]')],advance=root.querySelector('#waveplate-advance');
+    const NS='http://www.w3.org/2000/svg';let input='linear',alpha=45,delay=90,shownDelay=90,time=0,shownTime=0,raf=null;
+    function n(tag,attrs={},text='') {const e=document.createElementNS(NS,tag);for(const [k,v]of Object.entries(attrs))e.setAttribute(k,v);if(text)e.textContent=text;svg.appendChild(e);return e;}
+    function label(x,y,text,small=true,anchor='middle',attrs={}) {return n('text',{x,y,'text-anchor':anchor,class:small?'small':'',...attrs},text);}
+    function line(a,b,color,width=1,dash='') {n('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:color,'stroke-width':width,'stroke-dasharray':dash});}
+    function draw() {
+      const w=Math.max(280,Math.round(root.getBoundingClientRect().width)),stack=w<600,h=stack?640:320;
+      const panelw=stack?w:w/2,r=Math.min(98,(panelw-115)/2),cy=150;
+      svg.setAttribute('viewBox',`0 0 ${w} ${h}`);svg.setAttribute('height',h);svg.replaceChildren();
+      n('title',{id:'waveplate-title'},'Input and output electric-field tip traces for a quarter-wave or half-wave plate');
+      n('desc',{id:'waveplate-desc'},'Two plots show the input and output electric field at a fixed point, viewed along the beam. Horizontal is the wave plate fast axis and vertical is its slow axis. Curves trace the vector tip through one optical cycle; arrows show the selected instant. The ideal retarder preserves time-averaged power. Equal components with a quarter-cycle delay trace a circle.');
+      const a=alpha*Math.PI/180,A=Math.cos(a),B=Math.sin(a);
+      for(let i=0;i<2;i++) {
+        const cx=stack?w/2:w*(i===0?.25:.75),base=stack?i*320:0,y=cy+base;
+        const phase=((input==='circular'?90:0)+(i===0?0:shownDelay))*Math.PI/180,col=i===0?'var(--viz-series-1)':'var(--viz-series-2)';
+        label(cx,base+25,i===0?`Input · ${input}`:'Output · after wave plate',false);
+        n('rect',{x:cx-r,y:y-r,width:2*r,height:2*r,fill:'none',stroke:'var(--border)','stroke-width':1});
+        line([cx-r,y],[cx+r,y],'var(--border)');line([cx,y-r],[cx,y+r],'var(--border)');
+        label(cx,y+r+35,'Fast-axis E (relative units)',true,'middle',{'class':'axis-title small','data-axis':'x'});
+        label(cx-r-30,y,'Slow-axis E',true,'middle',{transform:`rotate(-90 ${cx-r-30} ${y})`,'class':'axis-title small','data-axis':'y'});
+        for(const sign of [-1,1]) {label(cx+sign*r,y+r+17,String(sign));label(cx-r-8,y-sign*r+4,String(sign),true,'end');}
+        const points=[];
+        for(let j=0;j<=160;j++){const t=j*2*Math.PI/160;points.push([cx+r*A*Math.cos(t),y-r*B*Math.cos(t-phase)]);}
+        n('polyline',{points:points.map(p=>p.join(',')).join(' '),fill:'none',stroke:col,'stroke-width':2.2});
+        const t=shownTime*2*Math.PI/8,x=cx+r*A*Math.cos(t),ey=y-r*B*Math.cos(t-phase);
+        line([x,y],[x,ey],'var(--muted-foreground)',1,'3 4');line([cx,ey],[x,ey],'var(--muted-foreground)',1,'3 4');
+        line([cx,y],[x,ey],col,2.3);
+        const dx=x-cx,dy=ey-y,l=Math.hypot(dx,dy);
+        if(l>6){const ux=dx/l,uy=dy/l;n('polyline',{points:`${x-7*ux+3*uy},${ey-7*uy-3*ux} ${x},${ey} ${x-7*ux-3*uy},${ey-7*uy+3*ux}`,fill:'none',stroke:col,'stroke-width':2});}
+        n('circle',{cx:x,cy:ey,r:3.5,fill:col});
+      }
+      alphaText.textContent=`${alpha}°`;timeText.textContent=`Time: ${time%8}/8 cycle`;
+      const totalPhase=(input==='circular'?90:0)+delay;
+      const linear=alpha===0||alpha===90||totalPhase%180===0;
+      const state=linear?'Linear':alpha===45?'Circular':'Elliptical';
+      result.textContent=`Output: ${state.toLowerCase()} · ideal transmitted power: 100%${input==='circular'&&delay===180?' · rotation direction reversed':''}`;
+      slider.disabled=input==='circular';
+      root.querySelectorAll('[data-input]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.input===input)));
+      buttons.forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.delay)===delay)));
+    }
+    function animate(targetDelay,targetTime) {
+      if(raf!==null){cancelAnimationFrame(raf);raf=null;}
+      const d0=shownDelay,t0=shownTime;
+      if(matchMedia('(prefers-reduced-motion: reduce)').matches){shownDelay=targetDelay;shownTime=targetTime;draw();return;}
+      const start=performance.now();
+      function step(now){const q=Math.min(1,(now-start)/220),s=q*q*(3-2*q);shownDelay=d0+(targetDelay-d0)*s;shownTime=t0+(targetTime-t0)*s;draw();if(q<1)raf=requestAnimationFrame(step);else raf=null;}
+      raf=requestAnimationFrame(step);
+    }
+    function save(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{inputPolarization:input,inputAngleDegrees:alpha,retardanceDegrees:delay,timeEighths:time%8},privateContent:null}).catch(()=>{});}
+    buttons.forEach(b=>b.addEventListener('click',()=>{delay=Number(b.dataset.delay);buttons.forEach(x=>x.setAttribute('aria-pressed',String(Number(x.dataset.delay)===delay)));animate(delay,time);save();}));
+    slider.addEventListener('input',()=>{alpha=Number(slider.value);draw();});slider.addEventListener('change',save);
+    advance.addEventListener('click',()=>{time++;animate(delay,time);save();});
+    function restore(state){const d=state?.modelContent;if(['linear','circular'].includes(d?.inputPolarization))input=d.inputPolarization;if(Number.isFinite(d?.inputAngleDegrees))alpha=Math.max(0,Math.min(90,d.inputAngleDegrees));if([0,90,180].includes(d?.retardanceDegrees))delay=d.retardanceDegrees;if(Number.isFinite(d?.timeEighths))time=d.timeEighths%8;if(input==='circular')alpha=45;shownTime=time;shownDelay=delay;slider.value=String(alpha);buttons.forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.delay)===delay)));draw();}
+    root.querySelectorAll('[data-input]').forEach(b=>b.addEventListener('click',()=>{input=b.dataset.input;if(input==='circular')alpha=45;slider.value=alpha;draw();save();}));
+    root.querySelectorAll('[data-example]').forEach(b=>b.addEventListener('click',()=>{
+      const e=b.dataset.example;
+      input=e.startsWith('circular')?'circular':'linear';alpha=e==='half-wave'?22.5:45;
+      delay=e==='half-wave'||e==='circular-flip'?180:90;
+      slider.value=alpha;animate(delay,time);save();
+    }));
+    window.addEventListener('openai:set_globals' ,e=>restore(e.detail?.globals?.widgetState));restore(window.openai?.widgetState);new ResizeObserver(draw).observe(root);
+  })();
+  </script>
+</div>
