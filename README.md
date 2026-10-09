@@ -18,8 +18,8 @@ A personal homepage uses a repository named `YOUR_USERNAME.github.io`; a project
 
 - `index.html`: collection homepage.
 - `assets/site.css`: shared dark appearance and navigation.
+- `assets/previews/`: lightweight SVG previews for the collection homepage.
 - `tools/sim-mask-alignment/index.html`: equal-hole clipping comparison tool.
-- `tools/sim-mask-single-view/index.html`: original single-view simulator.
 - `tools/waveplates/index.html`: quarter-wave and half-wave polarization simulator.
 - `source/`: editable visualization fragments.
 

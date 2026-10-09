@@ -3,28 +3,38 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="A collection of interactive optics and alignment tools.">
-  <title>Interactive tools</title>
+  <meta name="description" content="Interactive optics simulations: explore SIM mask alignment and polarization.">
+  <title>Optics playground</title>
   <link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
   <main class="hub">
-    <h1>Interactive tools</h1>
-    <p>Optics models to explore, discuss, and share.</p>
+    <header class="hub-header">
+      <span class="eyebrow">Nikita Kaydanov / Interactive optics</span>
+      <h1>Optics playground<span>.</span></h1>
+      <p>A small collection of simulations to make the optics easier to see.</p>
+    </header>
     <div class="tools">
       <a class="tool" href="tools/sim-mask-alignment/index.html">
-        <h2>SIM mask alignment</h2>
-        <p>Compare clipping in opposite directions. Explore X/Y position and rotation with six equal-sized apertures.</p>
-      </a>
-      <a class="tool" href="tools/sim-mask-single-view/index.html">
-        <h2>SIM mask — single view</h2>
-        <p>Move the mask and beam pattern directly. See how centering changes the clearance around each spot.</p>
+        <div class="preview"><img src="assets/previews/sim-mask.svg" alt="Six beam footprints inside circular mask apertures, with diagonal displacement."></div>
+        <div class="tool-content">
+          <span class="tool-category">Structured illumination</span>
+          <h2>SIM mask alignment</h2>
+          <p>Move the mask, rotate it, and compare which beams clip first in either direction.</p>
+          <span class="tool-action">Explore alignment <span aria-hidden="true">↗</span></span>
+        </div>
       </a>
       <a class="tool" href="tools/waveplates/index.html">
-        <h2>Wave plates and polarization</h2>
-        <p>Transform linear ↔ circular polarization with a quarter-wave plate. Explore half-wave rotation and compare input and output fields.</p>
+        <div class="preview"><img src="assets/previews/waveplates.svg" alt="A linear electric-field trace becomes a circular trace after a quarter-wave plate."></div>
+        <div class="tool-content">
+          <span class="tool-category">Polarization</span>
+          <h2>Wave plates</h2>
+          <p>See linear and circular polarization transform through quarter- and half-wave plates.</p>
+          <span class="tool-action">Explore polarization <span aria-hidden="true">↗</span></span>
+        </div>
       </a>
     </div>
+    <footer class="hub-footer"><span>Built to explore. Made to share.</span><a href="https://github.com/kaydanych/kaydanych.github.io">View source on GitHub ↗</a></footer>
   </main>
 </body>
 </html>
