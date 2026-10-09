@@ -1,0 +1,80 @@
+<div id="sim-mask-geometry">
+  <h3>Six spots through a movable mask</h3>
+  <div class="text-small">Illustrative geometry · hole radius = 1 · beam footprint radius = 0.35 · ring radius = 6</div>
+  <div class="viz-controls">
+    <label class="form-label" for="sim-x">Mask X <output id="sim-x-value" class="tabular-nums"></output><input id="sim-x" class="form-range" type="range" min="-1.2" max="1.2" step="0.01" value="0.4"></label>
+    <label class="form-label" for="sim-y">Mask Y <output id="sim-y-value" class="tabular-nums"></output><input id="sim-y" class="form-range" type="range" min="-1.2" max="1.2" step="0.01" value="0.4"></label>
+    <label class="form-label" for="sim-roll">Mask rotation <output id="sim-roll-value" class="tabular-nums"></output><input id="sim-roll" class="form-range" type="range" min="-10" max="10" step="0.1" value="0"></label>
+    <label class="form-label" for="sim-motion">Beam displacement <output id="sim-motion-value" class="tabular-nums"></output><input id="sim-motion" class="form-range" type="range" min="-1" max="1" step="0.01" value="0"></label>
+    <label class="form-label" for="sim-direction">Test direction<select id="sim-direction" class="form-select"><option value="diagonal">Upper left ↔ lower right</option><option value="perpendicular">Perpendicular diagonal</option></select></label>
+  </div>
+  <div class="viz-row text-small"><span>Outline: hole</span><span style="color:var(--viz-series-1)">Filled disk: beam footprint</span><span>+: unperturbed beam center</span><span>*: clipping</span></div>
+  <svg id="sim-drawing" role="img" aria-label="Six circular holes and six beam footprints, with adjustable mask translation, rotation, and beam displacement"></svg>
+  <div id="sim-thresholds" class="tabular-nums" aria-live="polite"></div>
+  <div id="sim-status" class="text-small" aria-live="polite"></div>
+  <style>
+    #sim-mask-geometry #sim-drawing {display:block;width:100%;overflow:hidden;margin:10px 0;}
+    #sim-mask-geometry #sim-drawing text {fill:var(--foreground);font-size:12px;}
+    #sim-mask-geometry #sim-status {margin-top:6px;}
+  </style>
+  <script>
+  (() => {
+    const root = document.getElementById('sim-mask-geometry');
+    const svg = root.querySelector('#sim-drawing');
+    const ids = ['x','y','roll','motion','direction'];
+    const fields = Object.fromEntries(ids.map(id => [id,root.querySelector('#sim-'+id)]));
+    const ns = 'http://www.w3.org/2000/svg';
+    const points = Array.from({length:6},(_,i)=>({x:6*Math.cos(i*Math.PI/3),y:6*Math.sin(i*Math.PI/3)}));
+    const read = () => ({x:+fields.x.value,y:+fields.y.value,roll:+fields.roll.value,motion:+fields.motion.value,direction:fields.direction.value});
+    const add = (tag,attrs,text) => {const n=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(text!==undefined)n.textContent=text;svg.appendChild(n);return n;};
+    function draw() {
+      const state=read(),phi=state.roll*Math.PI/180;
+      const ux=Math.SQRT1_2,uy=(state.direction==='diagonal'?-1:1)*Math.SQRT1_2;
+      const w=Math.max(280,root.getBoundingClientRect().width),h=Math.min(370,w*0.88);
+      const scale=Math.min((w-54)/18,(h-44)/16),cx=w/2,cy=h/2;
+      const px=x=>cx+x*scale,py=y=>cy-y*scale;
+      svg.setAttribute('viewBox',`0 0 ${w} ${h}`);svg.setAttribute('height',h);svg.replaceChildren();
+      add('title',{},'Movable six-hole mask and fixed nominal beam centers');
+      add('line',{x1:px(-2),y1:py(0),x2:px(2),y2:py(0),stroke:'var(--border)','stroke-width':1});
+      add('line',{x1:px(0),y1:py(-2),x2:px(0),y2:py(2),stroke:'var(--border)','stroke-width':1});
+      add('text',{x:px(2.2),y:py(0)+4},'X');add('text',{x:px(0)+5,y:py(2.2)},'Y');
+      add('line',{x1:px(-1.5*ux),y1:py(-1.5*uy),x2:px(1.5*ux),y2:py(1.5*uy),stroke:'var(--foreground)','stroke-width':1.5,'stroke-dasharray':'4 4'});
+      const errors=[],clipped=[];
+      points.forEach((p,i)=>{
+        const hole={x:state.x+p.x*Math.cos(phi)-p.y*Math.sin(phi),y:state.y+p.x*Math.sin(phi)+p.y*Math.cos(phi)};
+        const e={x:p.x-hole.x,y:p.y-hole.y};errors.push(e);
+        const beam={x:p.x+state.motion*ux,y:p.y+state.motion*uy};
+        const clip=Math.hypot(beam.x-hole.x,beam.y-hole.y)>.65+1e-9;if(clip)clipped.push(i+1);
+        add('circle',{cx:px(hole.x),cy:py(hole.y),r:scale,fill:'none',stroke:'var(--foreground)','stroke-width':1.5});
+        add('circle',{cx:px(beam.x),cy:py(beam.y),r:.35*scale,fill:clip?'var(--destructive)':'var(--viz-series-1)','fill-opacity':.65});
+        add('line',{x1:px(p.x)-3,y1:py(p.y),x2:px(p.x)+3,y2:py(p.y),stroke:'var(--foreground)','stroke-width':1});
+        add('line',{x1:px(p.x),y1:py(p.y)-3,x2:px(p.x),y2:py(p.y)+3,stroke:'var(--foreground)','stroke-width':1});
+        const angle=i*Math.PI/3;
+        add('text',{x:px(p.x+1.65*Math.cos(angle)),y:py(p.y+1.65*Math.sin(angle))+4,'text-anchor':'middle'},`${i+1}${clip?'*':''}`);
+      });
+      for(const id of ['x','y','roll','motion'])root.querySelector('#sim-'+id+'-value').textContent=(id==='roll'?state[id].toFixed(1)+'°':state[id].toFixed(2)+' r');
+      const nominalGap=Math.min(...errors.map(e=>.65-Math.hypot(e.x,e.y)));
+      const currentGap=Math.min(...errors.map(e=>.65-Math.hypot(e.x+state.motion*ux,e.y+state.motion*uy)));
+      let thresholds;
+      if(nominalGap < -1e-9) thresholds='Nominal footprints already clip; onset margins unavailable.';
+      else {
+        const limits=errors.map(e=>{const along=e.x*ux+e.y*uy,across=-e.x*uy+e.y*ux;const span=Math.sqrt(Math.max(0,.65*.65-across*across));return {plus:Math.max(0,span-along),minus:Math.max(0,span+along)};});
+        const plus=Math.min(...limits.map(e=>e.plus)),minus=Math.min(...limits.map(e=>e.minus));
+        thresholds=`First clipping from zero displacement: +${plus.toFixed(2)} r / −${minus.toFixed(2)} r`;
+      }
+      root.querySelector('#sim-thresholds').textContent=thresholds;
+      root.querySelector('#sim-status').textContent=`Current nearest-edge gap: ${currentGap.toFixed(2)} r · ${clipped.length?'Clipping footprints: '+clipped.join(', '):'All six footprints fit'}`;
+    }
+    function restore(s) {
+      if(!s||typeof s!=='object')return;
+      for(const id of ['x','y','roll','motion'])if(Number.isFinite(s[id]))fields[id].value=s[id];
+      if(['diagonal','perpendicular'].includes(s.direction))fields.direction.value=s.direction;
+      draw();
+    }
+    for(const el of Object.values(fields))el.addEventListener('input',()=>{draw();if(window.openai&&window.openai.setWidgetState)window.openai.setWidgetState({modelContent:{simulation:'SIM mask geometry in aperture-radius units',...read()},privateContent:null}).catch(()=>{});});
+    restore(window.openai&&window.openai.widgetState&&window.openai.widgetState.modelContent);
+    window.addEventListener('openai:set_globals',e=>restore(e.detail&&e.detail.globals&&e.detail.globals.widgetState&&e.detail.globals.widgetState.modelContent));
+    new ResizeObserver(draw).observe(root);draw();
+  })();
+  </script>
+</div>

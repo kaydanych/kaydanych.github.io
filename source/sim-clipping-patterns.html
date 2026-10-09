@@ -1,0 +1,139 @@
+<div id="sim-clipping-patterns">
+  <h3>Which spots clip first?</h3>
+  <div class="cp-choices">
+    <div id="cp-example-label">Example <span id="cp-custom-label" class="text-small"></span></div>
+    <div class="viz-row" role="group" aria-labelledby="cp-example-label">
+      <button class="btn" type="button" data-cp-example="rotation" aria-pressed="true">Rotation error</button>
+      <button class="btn" type="button" data-cp-example="x" aria-pressed="false">X error</button>
+      <button class="btn" type="button" data-cp-example="y" aria-pressed="false">Y error</button>
+      <button class="btn" type="button" data-cp-example="mixed" aria-pressed="false">Translation + rotation</button>
+      <button class="btn" type="button" data-cp-example="blind" aria-pressed="false">Hidden offset</button>
+      <button class="btn" type="button" data-cp-example="centered" aria-pressed="false">Centered</button>
+    </div>
+    <div id="cp-direction-label">Beam movement</div>
+    <div class="viz-row" role="group" aria-labelledby="cp-direction-label">
+      <button class="btn" type="button" data-cp-direction="diagonal" aria-pressed="true" aria-label="Upper left to lower right diagonal">Diagonal ↘</button>
+      <button class="btn" type="button" data-cp-direction="perpendicular" aria-pressed="false" aria-label="Perpendicular diagonal">Other diagonal ↗</button>
+      <button class="btn" type="button" data-cp-direction="horizontal" aria-pressed="false" aria-label="Left to right">Horizontal →</button>
+    </div>
+  </div>
+  <div class="viz-controls">
+    <label class="form-label" for="cp-x">Mask X <output id="cp-x-value" class="tabular-nums"></output><input id="cp-x" class="form-range" type="range" min="-0.8" max="0.8" step="0.01" value="0"></label>
+    <label class="form-label" for="cp-y">Mask Y <output id="cp-y-value" class="tabular-nums"></output><input id="cp-y" class="form-range" type="range" min="-0.8" max="0.8" step="0.01" value="0"></label>
+    <label class="form-label" for="cp-roll">Mask rotation <output id="cp-roll-value" class="tabular-nums"></output><input id="cp-roll" class="form-range" type="range" min="-8" max="8" step="0.1" value="3"></label>
+    <label class="form-label" for="cp-amplitude">Movement each way <output id="cp-amplitude-value" class="tabular-nums"></output><input id="cp-amplitude" class="form-range" type="range" min="0" max="1.4" step="0.01" value="0.38"></label>
+  </div>
+  <div class="viz-row text-small"><span>Outline = hole</span><span>+ = resting beam center</span><span style="color:var(--viz-series-1)">Filled = transmitted footprint</span><span style="color:var(--destructive)">Red / * = clipping</span></div>
+  <div class="text-small" id="cp-model">Geometric model · hole radius r = 1 · beam radius = 0.35r</div>
+  <div class="cp-pair">
+    <div><h3>+ movement ↘</h3><svg id="cp-plus" role="img" aria-label="Six spots and holes during positive beam movement"></svg><div id="cp-plus-status" class="text-small" aria-live="polite"></div></div>
+    <div><h3>− movement ↖</h3><svg id="cp-minus" role="img" aria-label="Six spots and holes during negative beam movement"></svg><div id="cp-minus-status" class="text-small" aria-live="polite"></div></div>
+  </div>
+  <div id="cp-onsets" class="text-small cp-details" aria-live="polite"></div>
+  <div id="cp-orders" class="text-small cp-details" aria-live="polite"></div>
+  <style>
+    #sim-clipping-patterns .cp-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;}
+    #sim-clipping-patterns .cp-pair svg{display:block;width:100%;overflow:hidden;}
+    #sim-clipping-patterns .cp-pair text{fill:var(--foreground);font-size:12px;}
+    #sim-clipping-patterns .cp-details{margin-top:8px;}
+    #sim-clipping-patterns .cp-choices{display:grid;gap:8px;margin-bottom:12px;}
+    #sim-clipping-patterns #cp-model{margin-top:6px;}
+    @media(max-width:600px){#sim-clipping-patterns .cp-pair{grid-template-columns:minmax(0,1fr);gap:8px;}}
+  </style>
+  <script>
+  (() => {
+    const root=document.getElementById('sim-clipping-patterns');
+    const ids=['x','y','roll','amplitude'];
+    const f=Object.fromEntries(ids.map(k=>[k,root.querySelector('#cp-'+k)]));
+    f.case={value:'rotation'};f.direction={value:'diagonal'};
+    const points=Array.from({length:6},(_,i)=>({x:6*Math.cos(i*Math.PI/3),y:6*Math.sin(i*Math.PI/3)}));
+    const presets={rotation:{x:0,y:0,roll:3,amplitude:.38},x:{x:.3,y:0,roll:0,amplitude:.55},y:{x:0,y:.3,roll:0,amplitude:.55},mixed:{x:.16,y:.08,roll:3,amplitude:.38},blind:{x:.4,y:.4,roll:0,amplitude:.38},centered:{x:0,y:0,roll:0,amplitude:.55}};
+    const read=()=>({example:f.case.value,direction:f.direction.value,x:+f.x.value,y:+f.y.value,roll:+f.roll.value,amplitude:+f.amplitude.value});
+    function save(){if(window.openai&&window.openai.setWidgetState)window.openai.setWidgetState({modelContent:{simulation:'SIM clipping patterns',...read()},privateContent:null}).catch(()=>{});}
+    function draw(){
+      const s=read(),phi=s.roll*Math.PI/180;
+      for(const button of root.querySelectorAll('[data-cp-example]'))button.setAttribute('aria-pressed',String(button.dataset.cpExample===s.example));
+      for(const button of root.querySelectorAll('[data-cp-direction]'))button.setAttribute('aria-pressed',String(button.dataset.cpDirection===s.direction));
+      root.querySelector('#cp-custom-label').textContent=s.example==='custom'?'· Your adjustments':'';
+      const ux=s.direction==='horizontal'?1:Math.SQRT1_2;
+      const uy=s.direction==='horizontal'?0:(s.direction==='diagonal'?-1:1)*Math.SQRT1_2;
+      const holes=points.map(p=>({x:s.x+p.x*Math.cos(phi)-p.y*Math.sin(phi),y:s.y+p.x*Math.sin(phi)+p.y*Math.cos(phi),a:1}));
+      const errors=points.map((p,i)=>({x:p.x-holes[i].x,y:p.y-holes[i].y,c:holes[i].a-.35}));
+      const restClipped=errors.some(e=>Math.hypot(e.x,e.y)>e.c+1e-9);
+      const margins=errors.map((e,i)=>{const t=e.x*ux+e.y*uy,n=-e.x*uy+e.y*ux,b=Math.sqrt(Math.max(0,e.c*e.c-n*n));return {id:i+1,plus:Math.max(0,b-t),minus:Math.max(0,b+t)};});
+      const labels=root.querySelectorAll('.cp-pair h3');
+      const arrow=s.direction==='diagonal'?['↘','↖']:s.direction==='perpendicular'?['↗','↙']:['→','←'];
+      labels[0].textContent='+ movement '+arrow[0];labels[1].textContent='− movement '+arrow[1];
+      for(const sign of [1,-1]){
+        const id=sign===1?'plus':'minus',svg=root.querySelector('#cp-'+id);
+        const w=Math.max(260,svg.parentElement.getBoundingClientRect().width),h=Math.min(335,w*.92),scale=Math.min((w-40)/18,(h-38)/17),cx=w/2,cy=h/2;
+        const px=x=>cx+x*scale,py=y=>cy-y*scale;
+        const add=(tag,attrs,text,parent=svg)=>{const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const[k,v]of Object.entries(attrs))n.setAttribute(k,v);if(text!==undefined)n.textContent=text;parent.appendChild(n);return n;};
+        svg.setAttribute('viewBox',`0 0 ${w} ${h}`);svg.setAttribute('height',h);svg.replaceChildren();
+        add('title',{},`${sign===1?'Positive':'Negative'} displacement of all beam footprints`);
+        const defs=add('defs',{});
+        add('line',{x1:px(-1.7),y1:py(0),x2:px(1.7),y2:py(0),stroke:'var(--border)','stroke-width':1});
+        add('line',{x1:px(0),y1:py(-1.7),x2:px(0),y2:py(1.7),stroke:'var(--border)','stroke-width':1});
+        add('text',{x:px(1.8),y:py(0)+4},'X');add('text',{x:px(0)+4,y:py(1.8)},'Y');
+        add('line',{x1:px(-ux),y1:py(-uy),x2:px(ux),y2:py(uy),stroke:'var(--foreground)','stroke-width':1.5,'stroke-dasharray':'3 3'});
+        const clipped=[];
+        points.forEach((p,i)=>{
+          const hole=holes[i],bx=p.x+sign*s.amplitude*ux,by=p.y+sign*s.amplitude*uy;
+          const clip=Math.hypot(bx-hole.x,by-hole.y)>hole.a-.35+1e-9;if(clip)clipped.push(i+1);
+          const clipId='cp-hole-'+id+'-'+i;
+          const cp=add('clipPath',{id:clipId,clipPathUnits:'userSpaceOnUse'},undefined,defs);
+          add('circle',{cx:px(hole.x),cy:py(hole.y),r:hole.a*scale},undefined,cp);
+          add('circle',{cx:px(bx),cy:py(by),r:.35*scale,fill:'var(--destructive)','fill-opacity':.6});
+          add('circle',{cx:px(bx),cy:py(by),r:.35*scale,fill:'var(--viz-series-1)','fill-opacity':.85,'clip-path':`url(#${clipId})`});
+          add('circle',{cx:px(hole.x),cy:py(hole.y),r:hole.a*scale,fill:'none',stroke:clip?'var(--destructive)':'var(--foreground)','stroke-width':1.3});
+          add('line',{x1:px(p.x)-3,y1:py(p.y),x2:px(p.x)+3,y2:py(p.y),stroke:'var(--foreground)','stroke-width':1});
+          add('line',{x1:px(p.x),y1:py(p.y)-3,x2:px(p.x),y2:py(p.y)+3,stroke:'var(--foreground)','stroke-width':1});
+          const angle=i*Math.PI/3;
+          add('text',{x:px(p.x+1.75*Math.cos(angle)),y:py(p.y+1.75*Math.sin(angle))+4,'text-anchor':'middle'},`${i+1}${clip?'*':''}`);
+        });
+        root.querySelector('#cp-'+id+'-status').textContent='Clipping now: '+(clipped.length?clipped.join(', '):'none');
+      }
+      for(const k of ['x','y','roll','amplitude'])root.querySelector('#cp-'+k+'-value').textContent=s[k].toFixed(k==='roll'?1:2)+(k==='roll'?'°':' r');
+      root.querySelector('#cp-model').textContent='Geometric mask-plane model · all holes have radius r = 1 · beam radius = 0.35r';
+      const order=key=>{
+        const sorted=[...margins].sort((a,b)=>a[key]-b[key]);
+        const groups=[];for(const row of sorted){const last=groups[groups.length-1];if(last&&Math.abs(last.value-row[key])<1e-7)last.ids.push(row.id);else groups.push({value:row[key],ids:[row.id]});}
+        return groups.map(g=>g.ids.sort((a,b)=>a-b).join(' + ')).join(' → ');
+      };
+      root.querySelector('#cp-onsets').textContent=restClipped?'Some beams already clip at rest. Restore transmission before comparing onset.':`First clipping from rest: +${Math.min(...margins.map(m=>m.plus)).toFixed(2)} r / −${Math.min(...margins.map(m=>m.minus)).toFixed(2)} r`;
+      root.querySelector('#cp-orders').textContent=restClipped?'':`First → last: + [${order('plus')}] · − [${order('minus')}]`;
+    }
+    for(const button of root.querySelectorAll('[data-cp-example]'))button.addEventListener('click',()=>{f.case.value=button.dataset.cpExample;const p=presets[f.case.value];for(const[k,v]of Object.entries(p))f[k].value=v;draw();save();});
+    for(const button of root.querySelectorAll('[data-cp-direction]'))button.addEventListener('click',()=>{f.direction.value=button.dataset.cpDirection;draw();save();});
+    for(const k of ['x','y','roll','amplitude'])f[k].addEventListener('input',()=>{if(['x','y','roll'].includes(k))f.case.value='custom';draw();save();});
+    function restore(v){if(!v||v.simulation!=='SIM clipping patterns')return;for(const k of ['x','y','roll','amplitude'])if(Number.isFinite(v[k]))f[k].value=v[k];if(['diagonal','perpendicular','horizontal'].includes(v.direction))f.direction.value=v.direction;if(v.example==='custom'||presets[v.example])f.case.value=v.example;draw();}
+    restore(window.openai&&window.openai.widgetState&&window.openai.widgetState.modelContent);
+    window.addEventListener('openai:set_globals',e=>restore(e.detail&&e.detail.globals&&e.detail.globals.widgetState&&e.detail.globals.widgetState.modelContent));
+    new ResizeObserver(draw).observe(root);draw();
+    const context=document.modelContext;
+    if(context&&typeof context.registerTool==='function'){
+      const lifecycle=new AbortController();
+      const limits={x:[-.8,.8],y:[-.8,.8],roll:[-8,8],amplitude:[0,1.4]};
+      const tool={
+        name:'configure_sim_alignment',title:'Adjust SIM alignment',
+        description:'Set mask X/Y position, rotation, and beam displacement in the visible geometric simulator. Positions and displacement use aperture-radius units; rotation uses degrees.',
+        inputSchema:{type:'object',properties:{x:{type:'number',minimum:-.8,maximum:.8},y:{type:'number',minimum:-.8,maximum:.8},roll:{type:'number',minimum:-8,maximum:8},amplitude:{type:'number',minimum:0,maximum:1.4},direction:{type:'string',enum:['diagonal','perpendicular','horizontal']}},additionalProperties:false},
+        annotations:{readOnlyHint:false,untrustedContentHint:false},
+        execute(input){
+          if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('Expected an alignment configuration object.');
+          for(const[key,value]of Object.entries(input)){
+            if(key==='direction'){if(!['diagonal','perpendicular','horizontal'].includes(value))throw new Error('Invalid beam direction.');}
+            else if(!limits[key]||!Number.isFinite(value)||value<limits[key][0]||value>limits[key][1])throw new Error('Invalid alignment parameter: '+key);
+          }
+          const next={simulation:'SIM clipping patterns',...read(),...input};
+          if(['x','y','roll'].some(key=>Object.hasOwn(input,key)))next.example='custom';
+          restore(next);save();
+          return {...read(),clippingPositive:root.querySelector('#cp-plus-status').textContent,clippingNegative:root.querySelector('#cp-minus-status').textContent};
+        }
+      };
+      try{Promise.resolve(context.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{});}catch{}
+      window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});
+    }
+  })();
+  </script>
+</div>
