@@ -1,80 +1,52 @@
 <div id="pbs-slm-control">
 <style>
 #pbs-slm-control{color:var(--foreground)}
-#pbs-slm-control .optics-svg{display:block;width:100%}
-#pbs-slm-control .optics-svg text{fill:var(--foreground);font-size:var(--font-size-base);font-weight:400}
-#pbs-slm-control .optics-svg .small{font-size:calc(var(--font-size-base)*.86)}
+#pbs-slm-control svg{display:block;width:100%}
+#pbs-slm-control svg text{fill:var(--foreground);font-size:var(--font-size-base);font-weight:400}
+#pbs-slm-control svg .small{font-size:calc(var(--font-size-base)*.86)}
 </style>
-<h3>PBS → SLM → PBS: polarization control</h3>
-<div class="viz-controls" role="group" aria-label="Optimal polarization presets">
-<button class="btn" type="button" data-preset="sim">SIM phase · max coupling</button>
-<button class="btn" type="button" data-preset="linear">Max output · linear</button>
-<button class="btn" type="button" data-preset="circular">Max output · circular</button>
-</div>
+<h3>How light gets from the SLM to the microscope</h3>
 <div class="viz-controls">
-<label class="form-label" for="pbs-model">SLM configuration<select class="form-select" id="pbs-model"><option value="phase">FLC · binary phase</option><option value="amplitude">FLC · binary amplitude</option><option value="unchanged">Reflection · unchanged polarization</option></select></label>
-<label class="form-label" for="pbs-pixel">Pixel state<select class="form-select" id="pbs-pixel"><option value="A">A</option><option value="B">B</option></select></label>
+<label class="form-label" for="pbs-preset">Polarization preset<select class="form-select" id="pbs-preset"><option value="linear">Full output · linear</option><option value="circular">Full output · circular</option><option value="sim">SIM · binary phase</option><option value="blocked">SLM leaves polarization unchanged</option></select></label>
+<button class="btn" type="button" id="pbs-pixel">Pixel A → switch to B</button>
 </div>
-<label class="form-label" for="pbs-hwp">Input HWP axis relative to laser p: <span id="pbs-hwp-value" class="tabular-nums">45°</span></label>
-<input class="form-range" id="pbs-hwp" type="range" min="0" max="45" step="0.5" value="45">
-<label class="form-label" for="pbs-qwp">Output QWP axis relative to p: <span id="pbs-qwp-value" class="tabular-nums">45°</span></label>
-<input class="form-range" id="pbs-qwp" type="range" min="0" max="90" step="0.5" value="45">
-<div class="viz-row"><button type="button" class="btn" id="pbs-advance">Advance ⅛ optical cycle</button><span id="pbs-time" class="text-small tabular-nums">Cycle 0/8</span></div>
-<svg class="optics-svg" id="pbs-layout" role="img" aria-labelledby="pbs-layout-title pbs-layout-desc"></svg>
-<div class="text-small">Field tips · local p/s axes · unit circle = full laser power</div>
-<svg class="optics-svg" id="pbs-fields" role="img" aria-labelledby="pbs-fields-title pbs-fields-desc"></svg>
-<div id="pbs-result" class="text-small" aria-live="polite"></div>
+<svg id="pbs-layout" role="img" aria-labelledby="pbs-title pbs-desc"></svg>
+<div id="pbs-result" aria-live="polite"></div>
+<div class="text-small">Ideal FLC model · power before diffraction and component losses</div>
 <script>
 (()=>{
-const root=document.getElementById('pbs-slm-control'),layout=root.querySelector('#pbs-layout'),fields=root.querySelector('#pbs-fields');
-const model=root.querySelector('#pbs-model'),pixel=root.querySelector('#pbs-pixel'),hwp=root.querySelector('#pbs-hwp'),qwp=root.querySelector('#pbs-qwp');
-const S='var(--viz-series-1)',P='var(--viz-series-2)',N='var(--foreground)',B='var(--border)',NS='http://www.w3.org/2000/svg';let tick=0;
-const rad=d=>d*Math.PI/180,clamp=v=>Math.abs(v)<1e-10?0:v,pct=v=>`${Math.round(v*100)}%`;
-function n(svg,tag,attrs={},text=''){const e=document.createElementNS(NS,tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);if(text)e.textContent=text;svg.appendChild(e);return e;}
-function label(svg,x,y,text,anchor='middle',small=true){return n(svg,'text',{x,y,'text-anchor':anchor,class:small?'small':''},text);}
-function line(svg,x1,y1,x2,y2,color=N,width=1,dash='',opacity=1){return n(svg,'line',{x1,y1,x2,y2,stroke:color,'stroke-width':width,'stroke-dasharray':dash,opacity});}
-function arrow(svg,x1,y1,x2,y2,color,width=2,opacity=1,dash=''){line(svg,x1,y1,x2,y2,color,width,dash,opacity);const a=Math.atan2(y2-y1,x2-x1),r=6;line(svg,x2,y2,x2-r*Math.cos(a-.5),y2-r*Math.sin(a-.5),color,width,'',opacity);line(svg,x2,y2,x2-r*Math.cos(a+.5),y2-r*Math.sin(a+.5),color,width,'',opacity);}
-function calc(state){const inc=clamp(Math.sin(2*rad(+hwp.value))),alpha=model.value==='phase'?(state==='A'?22.5:-22.5):model.value==='amplitude'?(state==='A'?45:0):0;
-const p=clamp(inc*Math.sin(2*rad(alpha))),s=clamp(inc*Math.cos(2*rad(alpha))),q=rad(+qwp.value),c=Math.cos(q),d=Math.sin(q);
-return{inc,p,s,alpha,out:[[p*c*c,p*d*d],[p*c*d,-p*c*d]],slmPower:inc*inc,outPower:p*p,returnPower:s*s};}
-function draw(){const w=Math.max(280,Math.round(root.getBoundingClientRect().width)),m=calc(pixel.value),a=calc('A'),b=calc('B'),t=tick*Math.PI/4;
-root.querySelector('#pbs-hwp-value').textContent=hwp.value+'°';root.querySelector('#pbs-qwp-value').textContent=qwp.value+'°';root.querySelector('#pbs-time').textContent=`Cycle ${tick}/8`;
-layout.replaceChildren();layout.setAttribute('viewBox',`0 0 ${w} 462`);layout.setAttribute('height',462);
-n(layout,'title',{id:'pbs-layout-title'},'Folded beam path: half-wave plate, polarizing beam splitter, reflective ferroelectric SLM, return to the same PBS and output quarter-wave plate');
-n(layout,'desc',{id:'pbs-layout-desc'},'Top view of the propagation paths, not electric-field directions. Blue denotes s and orange p. The PBS reflects s and transmits p in both directions. Outgoing and returning rays in the SLM arm are drawn slightly apart for clarity. Power values are fractions of the original laser power, before diffraction and real losses.');
-const x=w*.49,y=155,slmx=w-28,left=18,platex=w*.21,hwy=302,lasery=406;
-label(layout,12,24,'Propagation paths · top view','start',false);
-// Laser below, SLM right, illumination output left.
-n(layout,'rect',{x:slmx-7,y:y-28,width:14,height:56,fill:'var(--muted)',stroke:N,'stroke-width':1.5});label(layout,slmx,y-43,'SLM');label(layout,w-12,y+54,model.value==='unchanged'?'Unchanged E':`Pixel ${pixel.value} · axis ${m.alpha}°`,'end');
-n(layout,'rect',{x:x-20,y:y-20,width:40,height:40,fill:'none',stroke:N,'stroke-width':1.5});line(layout,x-20,y+20,x+20,y-20,B,1.5);label(layout,x-29,y+58,'PBS','end');
-line(layout,x-20,hwy,x+20,hwy,N,2);label(layout,x-29,hwy+4,'HWP','end');
-line(layout,platex,y-20,platex,y+20,N,2);label(layout,platex,y-32,'QWP');
-arrow(layout,x,lasery,x,hwy+8,P);arrow(layout,x,hwy-8,x,y+23,N);label(layout,x-15,lasery-15,'Laser p ↑','end');
-arrow(layout,x+23,y-6,slmx-10,y-6,S,2,.12+.88*m.slmPower);label(layout,(x+slmx)/2,y-27,`s → ${pct(m.slmPower)}`);
-arrow(layout,slmx-10,y+6,x+23,y+6,N,2,.12+.88*m.slmPower,'5 4');label(layout,(x+slmx)/2,y+30,'← return');
-// p passes straight through; s is reflected in either direction.
-arrow(layout,x,y-24,x,61,P,2,.12+.88*(1-m.slmPower));label(layout,x+14,72,'Input p','start');label(layout,x+14,90,pct(1-m.slmPower),'start');
-arrow(layout,x+12,y+23,x+12,hwy-8,S,2,.12+.88*m.returnPower,'5 4');arrow(layout,x+12,hwy+8,x+12,lasery,N,2,.12+.88*m.returnPower,'5 4');label(layout,x+28,250,'Return s ↓','start');label(layout,x+28,268,pct(m.returnPower),'start');
-arrow(layout,x-24,y,platex+8,y,P,2,.12+.88*m.outPower);label(layout,(x+platex)/2,y+32,`p ← ${pct(m.outPower)}`);
-arrow(layout,platex-8,y,left,y,N,2,.12+.88*m.outPower);label(layout,12,76,'To Fourier filter','start');label(layout,12,94,'→ microscope','start');
-label(layout,12,438,w<560?'Solid: out · dashed: back':'Solid: outgoing · dashed: returning','start');label(layout,12,456,'Shared SLM arm drawn slightly offset','start');
-// Transverse field traces, measured in a transported local p/s basis.
-fields.replaceChildren();const cols=w<560?2:4,pw=w/cols,rows=4/cols,ph=205;fields.setAttribute('viewBox',`0 0 ${w} ${rows*ph+145}`);fields.setAttribute('height',rows*ph+145);
-n(fields,'title',{id:'pbs-fields-title'},'Electric-field traces at four stations and comparison of the two pixel states after PBS selection');
-n(fields,'desc',{id:'pbs-fields-desc'},'Each transverse plot uses local p horizontally and s vertically. Curves trace the electric-field tip through an optical cycle; arrows show the same chosen instant. Radii scale with electric-field amplitude, so power is proportional to radius squared. In phase mode, pixel A and B have the same transmitted intensity and opposite field signs.');
-const panels=[{title:'At SLM',v:[[0,0],[m.inc,0]],power:m.slmPower},{title:'Return to PBS',v:[[m.p,0],[m.s,0]],power:m.slmPower},{title:'After PBS',v:[[m.p,0],[0,0]],power:m.outPower},{title:'After QWP',v:m.out,power:m.outPower}];
-panels.forEach((p,i)=>{const cx=pw*(i%cols+.5),top=Math.floor(i/cols)*ph,cy=top+96,r=Math.min(50,(pw-44)/2);label(fields,cx,top+20,p.title,'middle',false);n(fields,'circle',{cx,cy,r,fill:'none',stroke:B,'stroke-width':1});line(fields,cx-r-5,cy,cx+r+5,cy,B);line(fields,cx,cy-r-5,cx,cy+r+5,B);label(fields,cx+r+10,cy+4,'p');label(fields,cx,cy-r-10,'s');
-const xy=z=>[cx+r*(p.v[0][0]*Math.cos(z)-p.v[0][1]*Math.sin(z)),cy-r*(p.v[1][0]*Math.cos(z)-p.v[1][1]*Math.sin(z))];const pts=Array.from({length:97},(_,j)=>xy(j*Math.PI/48));n(fields,'polyline',{points:pts.map(v=>v.join(',')).join(' '),fill:'none',stroke:N,'stroke-width':2});const tip=xy(t);if(Math.hypot(tip[0]-cx,tip[1]-cy)>.5)arrow(fields,cx,cy,...tip,N,2);label(fields,cx,top+170,pct(p.power)+' laser power');
-const pol=p.power<1e-9?'No light':i===0?'Linear s':i===2?'Linear p':i===1?(Math.abs(m.p)<1e-9?'Linear s':Math.abs(m.s)<1e-9?'Linear p':'Linear · mixed p/s'):(Math.abs(Math.sin(2*rad(+qwp.value)))>1-1e-8?'Circular':Math.abs(Math.sin(2*rad(+qwp.value)))<1e-9?'Linear p':'Elliptical');label(fields,cx,top+188,pol);});
-const wy=rows*ph+68,x0=36,x1=w-22,mid=(x0+x1)/2,rr=26;label(fields,12,rows*ph+19,'Selected p field · A solid / B dashed','start',false);line(fields,x0,wy,x1,wy,B);for(const[v,col,dash]of[[a.p,P,''],[b.p,S,'5 4']])n(fields,'polyline',{points:Array.from({length:121},(_,i)=>[x0+(x1-x0)*i/120,wy-rr*v*Math.cos(4*Math.PI*i/120)]).map(p=>p.join(',')).join(' '),fill:'none',stroke:col,'stroke-width':2,'stroke-dasharray':dash});
-label(fields,12,rows*ph+119,`A: ${pct(a.outPower)} · B: ${pct(b.outPower)}`,'start');label(fields,w-12,rows*ph+138,model.value==='phase'?'Equal power · phase difference π':model.value==='amplitude'?'One bright state · one dark state':'Both blocked at output','end');
-for(const btn of root.querySelectorAll('[data-preset]')){const k=btn.dataset.preset,match=+hwp.value===45&&(k==='sim'?model.value==='phase'&&+qwp.value===45:model.value==='amplitude'&&pixel.value==='A'&&+qwp.value===(k==='linear'?0:45));btn.setAttribute('aria-pressed',String(match));}
-root.querySelector('#pbs-result').textContent=`Ideal PBS + ideal round-trip retarder · ${model.value==='phase'?'FLC axes ±22.5° about input s':model.value==='amplitude'?'FLC axes 45° / 0° about input s':'no polarization conversion'} · power before diffraction losses`;
+const root=document.getElementById('pbs-slm-control'),svg=root.querySelector('svg'),preset=root.querySelector('#pbs-preset'),toggle=root.querySelector('#pbs-pixel');let pixel='A',edited=false;
+const NS='http://www.w3.org/2000/svg',S='var(--viz-series-1)',P='var(--viz-series-2)',N='var(--foreground)',B='var(--border)';
+function n(tag,a={},t=''){const e=document.createElementNS(NS,tag);for(const[k,v]of Object.entries(a))e.setAttribute(k,v);if(t)e.textContent=t;svg.appendChild(e);return e;}
+function text(x,y,t,anchor='middle',small=false){return n('text',{x,y,'text-anchor':anchor,class:small?'small':''},t);}
+function line(x1,y1,x2,y2,col=N,dash='',opacity=1){n('line',{x1,y1,x2,y2,stroke:col,'stroke-width':2,'stroke-dasharray':dash,opacity});}
+function arrow(x1,y1,x2,y2,col,dash='',opacity=1){line(x1,y1,x2,y2,col,dash,opacity);const a=Math.atan2(y2-y1,x2-x1);for(const d of[-.5,.5])line(x2,y2,x2-7*Math.cos(a+d),y2-7*Math.sin(a+d),col,'',opacity);}
+function glyph(x,y,kind){n('circle',{cx:x,cy:y,r:14,fill:'none',stroke:B});if(kind==='circular')n('circle',{cx:x,cy:y,r:9,fill:'none',stroke:N,'stroke-width':2});else if(kind==='s')line(x,y-10,x,y+10,S);else if(kind==='p')line(x-10,y,x+10,y,P);else if(kind==='mix')line(x-9,y+(pixel==='A'?9:-9),x+9,y+(pixel==='A'?-9:9),N);}
+function draw(){const w=Math.max(280,Math.round(root.getBoundingClientRect().width)),mobile=w<560,x=w*.51,y=121,r=w-30,q=w*.22,mid=(x+r)/2;const mode=preset.value,sim=mode==='sim',blocked=mode==='blocked',out=blocked?0:sim?50:pixel==='A'?100:0,back=100-out,kind=sim?'mix':out?'p':'s';
+svg.setAttribute('viewBox',`0 0 ${w} 350`);svg.setAttribute('height','350');svg.replaceChildren();
+n('title',{id:'pbs-title'},'Laser shines up, PBS reflects light right to the SLM, returning p polarization passes left to the microscope');n('desc',{id:'pbs-desc'},'Solid paths travel toward the SLM; dashed paths return. The PBS reflects s and transmits p. Small circles show transverse polarization with local p horizontal and s vertical. Input HWP is fixed at 45 degrees. The output quarter-wave plate is at zero degrees for linear and 45 degrees for circular output.');
+// Shared PBS and reflective SLM; arm paths slightly separated for readability.
+n('rect',{x:x-19,y:y-19,width:38,height:38,fill:'var(--muted)',stroke:N});line(x-19,y+19,x+19,y-19,B);text(x-26,y+45,'PBS','end');
+n('rect',{x:r-6,y:y-26,width:12,height:52,fill:'var(--muted)',stroke:N});text(r,y-40,'SLM');
+// 1. Laser and HWP prepare s; PBS sends it right.
+arrow(x,293,x,253,P);line(x-18,245,x+18,245);text(x-27,249,'HWP 45°','end',true);arrow(x,237,x,y+22,S);text(x,316,'Laser ↑');text(x-14,205,'s','end');
+arrow(x+23,y-7,r-10,y-7,S);text(mid,y-34,mobile?'① s →':'① s reflected to SLM');
+// 2. Return polarization determines routing at the same PBS.
+arrow(r-10,y+7,x+23,y+7,kind==='p'?P:kind==='s'?S:N,'6 4');text(mid,y+39,mobile?(kind==='mix'?'② p + s':`② ${kind} ←`):(kind==='mix'?'② SLM returns p + s':`② SLM returns ${kind}`));
+glyph(mid,y+72,kind);text(mid,y+101,blocked?'No rotation':sim?(mobile?'Axes ±22.5°':'FLC axes ±22.5°'):(mobile?'Axis '+(pixel==='A'?'45°':'0°'):'FLC axis '+(pixel==='A'?'45°':'0°')),'middle',true);
+// 3. Transmitted return p reaches the output; show rejected power only if nonzero.
+arrow(x-23,y,q+8,y,P,'6 4',out?1:.18);line(q,y-19,q,y+19);text(q,y-30,mode==='linear'||blocked?'QWP 0°':'QWP 45°','middle',true);arrow(q-8,y,15,y,N,'6 4',out?1:.18);
+text(12,26,mobile?'← Fourier filter':'← Fourier filter / microscope','start');text(12,47,`③ Output: ${out}%`,'start');
+if(out){glyph(q,y+52,mode==='linear'?'p':'circular');text(q,y+82,mode==='linear'?'Linear p':'Circular','middle',true);}else text(q,y+52,'No output','middle',true);
+if(back){arrow(x+10,y+23,x+10,237,S,'6 4');arrow(x+10,253,x+10,293,N,'6 4');text(x+25,278,`${back}% back`,'start',true);}
+text(12,344,mobile?'PBS: s reflects · p transmits':'PBS: s reflects · p transmits   |   Small circles: polarization viewed along the beam','start',true);
+toggle.textContent=`Pixel ${pixel} → switch to ${pixel==='A'?'B':'A'}`;toggle.disabled=blocked;
+root.querySelector('#pbs-result').textContent=blocked?'Unchanged s returns toward the laser.':sim?'Both pixels send 50% to the output, with opposite optical phase.':pixel==='A'?'Pixel A converts s → p: all ideal power exits toward the microscope.':'Pixel B keeps s: light returns toward the laser.';
+root.dataset.outputPower=out;root.dataset.returnPower=back;
 }
-function save(){window.openai?.setWidgetState?.({modelContent:{slmModel:model.value,pixel:pixel.value,hwpAngle:+hwp.value,qwpAngle:+qwp.value,opticalTick:tick},privateContent:null}).catch(()=>{});}
-function restore(s){const v=s?.modelContent;if(v){if(['phase','amplitude','unchanged'].includes(v.slmModel))model.value=v.slmModel;if(['A','B'].includes(v.pixel))pixel.value=v.pixel;if(Number.isFinite(v.hwpAngle))hwp.value=v.hwpAngle;if(Number.isFinite(v.qwpAngle))qwp.value=v.qwpAngle;if(Number.isInteger(v.opticalTick))tick=((v.opticalTick%8)+8)%8;}draw();}
-for(const btn of root.querySelectorAll('[data-preset]'))btn.addEventListener('click',()=>{hwp.value=45;pixel.value='A';model.value=btn.dataset.preset==='sim'?'phase':'amplitude';qwp.value=btn.dataset.preset==='linear'?0:45;draw();save();});
-for(const e of[model,pixel,hwp,qwp])e.addEventListener(e.tagName==='SELECT'?'change':'input',()=>{draw();save();});root.querySelector('#pbs-advance').addEventListener('click',()=>{tick=(tick+1)%8;draw();save();});window.addEventListener('openai:set_globals',e=>restore(e.detail?.globals?.widgetState));restore(window.openai?.widgetState);new ResizeObserver(draw).observe(root);
+function save(){window.openai?.setWidgetState?.({modelContent:{preset:preset.value,pixel},privateContent:null}).catch(()=>{});}
+function restore(s){const v=s?.modelContent;if(v){if(['linear','circular','sim','blocked'].includes(v.preset))preset.value=v.preset;else if(v.slmModel)preset.value=v.slmModel==='phase'?'sim':v.slmModel==='unchanged'?'blocked':v.qwpAngle===0?'linear':'circular';if(['A','B'].includes(v.pixel))pixel=v.pixel;}draw();}
+preset.addEventListener('change',()=>{edited=true;pixel='A';draw();save();});toggle.addEventListener('click',()=>{edited=true;pixel=pixel==='A'?'B':'A';draw();save();});window.addEventListener('openai:set_globals',e=>{if(!edited)restore(e.detail?.globals?.widgetState);});restore(window.openai?.widgetState);new ResizeObserver(draw).observe(root);
 })();
 </script>
 </div>
