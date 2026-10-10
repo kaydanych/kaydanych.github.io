@@ -115,7 +115,18 @@ scoreForm.addEventListener('submit',e=>{
  renderBoard();
 });
 function begin(){submitted=false;currentEntry=null;nameInput.disabled=false;nameInput.value="";saveButton.disabled=true;saveButton.textContent="SAVE SCORE";saveStatus.textContent="";newDepthRoute();finish.hidden=true;elapsed=0;qualityIntegral=0;setFocus(50);mode='playing';keys.clear();last=performance.now();start.textContent='RESTART ↻';say('KEEP THE CELL SHARP');start.focus({preventScroll:true});}
-addEventListener('keydown',e=>{if(mode!=='playing')return;if(!['ArrowUp','ArrowDown'].includes(e.key))return;e.preventDefault();keys.add(e.key);});
+addEventListener('keydown',e=>{
+ if(e.isComposing||e.ctrlKey||e.metaKey||e.altKey)return;
+ const editing=e.target?.matches?.('input,textarea,[contenteditable="true"]');
+ if(editing)return;
+ if(e.key==='Enter'||e.key==='ArrowRight'){
+   // Preserve Enter on the score form's Save button.
+   if(e.key==='Enter'&&e.target===saveButton)return;
+   e.preventDefault();if(!e.repeat&&mode!=='playing')begin();return;
+ }
+ if(mode!=='playing'||!['ArrowUp','ArrowDown'].includes(e.key))return;
+ e.preventDefault();keys.add(e.key);
+});
 addEventListener('keyup',e=>keys.delete(e.key));addEventListener('blur',()=>keys.clear());
 document.addEventListener('visibilitychange',()=>{keys.clear();last=performance.now();});
 start.onclick=begin;document.getElementById('replay').onclick=begin;
