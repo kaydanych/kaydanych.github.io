@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Diffraction orders and sample stripes">
+<rect width="640" height="360" fill="#151515"/>
+<g stroke="#727272" fill="none"><path d="M60 160H540" stroke-dasharray="5 6"/><path d="M150 90Q175 160 150 230Q125 160 150 90M420 90Q445 160 420 230Q395 160 420 90"/><path d="M285 90V137M285 151V169M285 183V230" stroke-width="4"/></g>
+<g fill="none" stroke-width="3"><path d="M60 130L150 114L285 144L420 174L540 190M60 160L150 144L285 144L420 144L540 160M60 190L150 174L285 144L420 114L540 130" stroke="#8ccaff"/><path d="M60 130L150 146L285 176L420 206L540 190M60 160L150 176L285 176L420 176L540 160M60 190L150 206L285 176L420 146L540 130" stroke="#ffad70" stroke-dasharray="7 5"/></g>
+<g fill="#ededed" font-family="sans-serif" font-size="18" text-anchor="middle"><text x="60" y="70">SLM</text><text x="285" y="70">Fourier filter</text><text x="540" y="70">Sample</text></g>
+<g stroke="#8ccaff" stroke-width="7"><path d="M482 263V315M497 263V315M512 263V315M527 263V315M542 263V315M557 263V315M572 263V315"/></g>
+</svg>

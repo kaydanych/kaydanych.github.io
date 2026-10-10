@@ -1,0 +1,139 @@
+<div id="microscope-planes">
+  <style>
+    #microscope-planes { color: var(--foreground); }
+    #microscope-planes .optics-svg { display:block; width:100%; }
+    #microscope-planes .optics-svg text { fill:var(--foreground); font-size:var(--font-size-base); font-weight:400; }
+    #microscope-planes .optics-svg .small { font-size:calc(var(--font-size-base) * .86); }
+    #microscope-planes .optics-svg .structure { stroke:var(--border); fill:none; stroke-width:1.5; }
+    #microscope-planes .optics-svg .lens { stroke:var(--foreground); fill:var(--muted); fill-opacity:.35; stroke-width:1.5; }
+    #microscope-planes .optics-svg .axis { stroke:var(--border); stroke-width:1; stroke-dasharray:4 5; }
+    #microscope-planes .optics-svg .order-plus { stroke:var(--viz-series-1); fill:none; stroke-width:1.7; }
+    #microscope-planes .optics-svg .order-minus { stroke:var(--viz-series-2); fill:none; stroke-width:1.7; stroke-dasharray:6 3; }
+    #microscope-planes .optics-svg .zero { stroke:var(--viz-series-3); fill:none; stroke-width:1.7; }
+    #microscope-planes .optics-svg .rejected { stroke:var(--muted-foreground); stroke-width:1; stroke-dasharray:2 4; fill:none; opacity:.55; }
+    #microscope-planes .optics-svg .spot-plus { fill:var(--viz-series-1); }
+    #microscope-planes .optics-svg .spot-minus { fill:var(--viz-series-2); }
+    #microscope-planes .optics-svg .spot-zero { fill:var(--viz-series-3); }
+    #microscope-planes .legend-swatch { display:inline-block; width:24px; vertical-align:middle; border-top:2px solid var(--viz-series-1); }
+    #microscope-planes .legend-swatch.minus { border-color:var(--viz-series-2); border-top-style:dashed; }
+    #microscope-planes .legend-swatch.zero { border-color:var(--viz-series-3); }
+  </style>
+  <h3>From SLM diffraction to sample illumination</h3>
+  <div class="viz-controls">
+    <label class="form-label" for="microscope-orders">Orders passed by the filter
+      <select class="form-select" id="microscope-orders">
+        <option value="pair">+1 and −1 · stripes</option>
+        <option value="single">+1 only · uniform envelope</option>
+        <option value="zero">0 only · widefield</option>
+      </select>
+    </label>
+  </div>
+  <div class="viz-row text-small" aria-label="Ray legend">
+    <span><span class="legend-swatch"></span> +1 order</span>
+    <span><span class="legend-swatch minus"></span> −1 order</span>
+    <span><span class="legend-swatch zero"></span> 0 order</span>
+  </div>
+  <svg class="optics-svg" role="img" aria-labelledby="microscope-svg-title microscope-svg-desc"></svg>
+  <div class="text-small" id="microscope-state" aria-live="polite"></div>
+  <script>
+  (() => {
+    const root=document.getElementById('microscope-planes');
+    const svg=root.querySelector('.optics-svg');
+    const select=root.querySelector('#microscope-orders');
+    const status=root.querySelector('#microscope-state');
+    const NS='http://www.w3.org/2000/svg';
+    function el(tag,attrs={},text='') {
+      const n=document.createElementNS(NS,tag);
+      for(const [k,v] of Object.entries(attrs)) n.setAttribute(k,v);
+      if(text) n.textContent=text;
+      svg.appendChild(n); return n;
+    }
+    function label(x,y,text,anchor='middle',small=false) {
+      return el('text',{x,y,'text-anchor':anchor,class:small?'small':''},text);
+    }
+    function line(x1,y1,x2,y2,cls) {el('line',{x1,y1,x2,y2,class:cls});}
+    function path(points,cls) {el('polyline',{points:points.map(p=>p.join(',')).join(' '),class:cls});}
+    function draw() {
+      const w=Math.max(280,Math.round(root.getBoundingClientRect().width));
+      svg.setAttribute('viewBox',`0 0 ${w} 585`); svg.setAttribute('height',585);
+      svg.replaceChildren();
+      el('title',{id:'microscope-svg-title'},'Two 4f stages: order selection followed by illumination of the objective');
+      el('desc',{id:'microscope-svg-desc'},'Solid plus-one and dashed minus-one rays focus at the Fourier filter, become parallel after L2, focus again at the objective back focal plane, and emerge as parallel beams tilted in opposite directions. The SLM, intermediate field and sample are image conjugates. The filter and objective back focal plane are pupil conjugates. Lenses are equivalent thin lenses; distances are schematic.');
+      const margin=w<450?24:54, f=(w-2*margin)/4, xs=[0,1,2,3,4].map(i=>margin+i*f);
+      const cy1=121, cy2=316, a=19, spread=26;
+      const mode=select.value, passed=mode==='pair'?[1,-1]:mode==='single'?[1]:[0];
+      function cls(s){return s===1?'order-plus':s===-1?'order-minus':'zero';}
+      function spotcls(s){return s===1?'spot-plus':s===-1?'spot-minus':'spot-zero';}
+      label(8,25,w<500?'1 · SLM and order selection':'1 · SLM → Fourier filter → collimated orders','start');
+      label(8,220,w<500?'2 · Pupil focusing and sample':'2 · Same output → pupil spots → sample beams','start');
+      function row(cy,names,lenses) {
+        line(xs[0]-14,cy,xs[4]+14,cy,'axis');
+        names.forEach((arr,i)=> {
+          const anchor=i===0?'start':i===4?'end':'middle';
+          const xx=i===0?xs[i]-8:i===4?xs[i]+8:xs[i];
+          arr.forEach((t,j)=>label(xx,cy-69+j*17,t,anchor,true));
+        });
+        for(const i of lenses) {
+          el('path',{d:`M ${xs[i]} ${cy-52} Q ${xs[i]+13} ${cy} ${xs[i]} ${cy+52} Q ${xs[i]-13} ${cy} ${xs[i]} ${cy-52}`,class:'lens'});
+        }
+        for(const i of [0,4]) line(xs[i],cy-50,xs[i],cy+50,'structure');
+      }
+      row(cy1,[['SLM'],['L1'],['Fourier','filter'],['L2'],['Field','plane']], [1,3]);
+      row(cy2,[['Field','plane'],['L3'],w<450?['Pupil','BFP']:['Objective','BFP'],[w<450?'Obj.':'Objective'],['Sample']], [1,3]);
+      // A Fourier-plane mask with openings only for the selected orders.
+      const holes=passed.map(s=>s*a).sort((x,y)=>x-y);
+      let prev=-51;
+      for(const h of holes) {line(xs[2],cy1+prev,xs[2],cy1+h-6,'lens'); prev=h+6;}
+      line(xs[2],cy1+prev,xs[2],cy1+51,'lens');
+      line(xs[2],cy2-51,xs[2],cy2+51,'structure');
+      // Unselected orders terminate at the mask.
+      for(const s of [1,0,-1].filter(s=>!passed.includes(s))) {
+        path([[xs[0],cy1],[xs[1],cy1+s*a],[xs[2],cy1+s*a]],'rejected');
+        line(xs[2]-4,cy1+s*a-4,xs[2]+4,cy1+s*a+4,'rejected');
+        line(xs[2]-4,cy1+s*a+4,xs[2]+4,cy1+s*a-4,'rejected');
+      }
+      for(const s of passed) {
+        for(const y of [-spread,0,spread]) {
+          path([[xs[0],cy1+y],[xs[1],cy1+y+s*a],[xs[2],cy1+s*a],[xs[3],cy1+s*a-y],[xs[4],cy1-y]],cls(s));
+          path([[xs[0],cy2-y],[xs[1],cy2-y-s*a],[xs[2],cy2-s*a],[xs[3],cy2+y-s*a],[xs[4],cy2+y]],cls(s));
+        }
+        el('circle',{cx:xs[2],cy:cy1+s*a,r:4,class:spotcls(s)});
+        el('circle',{cx:xs[2],cy:cy2-s*a,r:4,class:spotcls(s)});
+      }
+      label(w-8,cy1+75,'Parallel rays per order','end',true);
+      label(w-8,cy2+75,mode==='pair'?'Two tilted plane waves':'One plane wave','end',true);
+      label(8,425,'Pupil view','start',true);
+      label(w-8,425,'Sample view','end',true);
+      const pcx=w*.24, scx=w*.73, iy=480, r=38, fw=Math.min(140,w*.39), fh=72;
+      el('circle',{cx:pcx,cy:iy,r,class:'structure'});
+      line(pcx-r,iy,pcx+r,iy,'axis');
+      for(const s of passed) {
+        el('circle',{cx:pcx-s*23,cy:iy,r:5,class:spotcls(s)});
+        label(pcx-s*23,iy+22,s===0?'0':s>0?'+1':'−1','middle',true);
+      }
+      for(let i=0;i<Math.ceil(fw);i++) {
+        const value=mode==='pair'?.5+.5*Math.cos(2*Math.PI*i/25):.5;
+        el('rect',{x:scx-fw/2+i,y:iy-fh/2,width:1.1,height:fh,fill:'var(--viz-series-1)','fill-opacity':.05+.85*value});
+      }
+      el('rect',{x:scx-fw/2,y:iy-fh/2,width:fw,height:fh,class:'structure'});
+      label(pcx,536,passed.length===2?'Two spots':'One spot','middle',true);
+      label(scx,536,mode==='pair'?'Interference stripes':'No interference stripes','middle',true);
+      label(8,562,'Field conjugates: SLM ↔ field plane ↔ sample','start',true);
+      label(8,580,'Pupil conjugates: filter ↔ objective BFP','start',true);
+      status.textContent='Equivalent thin lenses · not to scale · dichroic fold omitted';
+    }
+    function restore(state) {
+      const mode=state?.modelContent?.orders;
+      if(['pair','single','zero'].includes(mode)) select.value=mode;
+      draw();
+    }
+    select.addEventListener('change',()=> {
+      draw();
+      if(window.openai?.setWidgetState) window.openai.setWidgetState({modelContent:{orders:select.value},privateContent:null}).catch(()=>{});
+    });
+    window.addEventListener('openai:set_globals',e=>restore(e.detail?.globals?.widgetState));
+    restore(window.openai?.widgetState);
+    new ResizeObserver(draw).observe(root);
+  })();
+  </script>
+</div>

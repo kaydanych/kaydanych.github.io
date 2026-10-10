@@ -21,6 +21,7 @@ A personal homepage uses a repository named `YOUR_USERNAME.github.io`; a project
 - `assets/previews/`: lightweight SVG previews for the collection homepage.
 - `tools/sim-mask-alignment/index.html`: equal-hole clipping comparison tool.
 - `tools/waveplates/index.html`: quarter-wave and half-wave polarization simulator.
+- `tools/slm-to-sample/index.html`: SLM diffraction, Fourier filtering, and objective illumination.
 - `source/`: editable visualization fragments.
 
 To add a tool, put its standalone page in `tools/TOOL_NAME/index.html` and add a link on the homepage. The existing exports include the simulator code and styles and require no server-side code.
@@ -30,3 +31,5 @@ These are geometric mask-plane models with illustrative normalized dimensions, r
 Commit and push changes to `main` to update the website. No build or package installation is required.
 
 The wave-plate tool models an ideal lossless retarder. Input/output field traces use the plate’s fast and slow axes; advancing time shows a field oscillation at a fixed point, not a photon trajectory.
+
+The SLM-to-sample tool uses schematic equivalent thin lenses and selectable diffraction orders. It illustrates field and pupil conjugates; it is not a quantitative wave-optics simulation.
