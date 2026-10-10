@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+<rect width="640" height="360" fill="#151515"/>
+<g stroke="#a0a0a0" fill="none" stroke-width="2"><rect x="304" y="145" width="48" height="48"/><path d="M304 193L352 145M118 147V191M299 272H357"/><rect x="296" y="48" width="64" height="14"/></g>
+<g fill="none" stroke-width="3"><path d="M45 169H118" stroke="#ffad70"/><path d="M125 169H321V65" stroke="#8ccaff"/><path d="M335 65V146" stroke="#ededed" stroke-dasharray="7 5"/><path d="M328 194V264" stroke="#ffad70"/><path d="M328 279V321" stroke="#ededed"/><path d="M300 183H45" stroke="#8ccaff" stroke-dasharray="7 5"/></g>
+<g fill="#ededed" font-family="sans-serif" font-size="18"><text x="308" y="33">SLM</text><text x="366" y="179">PBS</text><text x="95" y="135">HWP</text><text x="370" y="280">QWP</text><text x="45" y="220">return s</text><text x="360" y="235">output p</text></g>
+</svg>
