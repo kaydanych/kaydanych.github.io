@@ -44,3 +44,7 @@ The compact PBS view uses one preset selector and a pixel A/B switch. Polarizati
 ## Spike Studio
 
 `tools/spike-studio/` contains a dependency-free neural spike explorer with synchronized audio, neuron selection, schematic sleep activity, and WAV/JSON/PNG export. All data and voltage-like traces are simulated; the population rate is not EEG. Playback starts paused and pauses when the page is hidden.
+
+## Light Pattern Lab
+
+The SLM-to-sample page is now an interactive binary-phase-grating lab with order selection, analytic two-beam interference, phase/orientation/density controls, and a nine-pattern acquisition challenge. It is an idealized 2D-SIM illumination model, not a reconstruction. The previous diagram remains at `tools/slm-to-sample/classic.html`.
