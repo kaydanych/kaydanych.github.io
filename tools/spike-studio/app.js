@@ -21,9 +21,12 @@ function draw(){if(!data)return;const t=current(),left=32,right=width-12,plotWid
  ctx.beginPath();ctx.strokeStyle='#ef9a65';ctx.lineWidth=1;for(let px=0;px<=plotWidth;px++){const at=start+px/plotWidth*windowSize;let val=1.3*Math.sin(at*313)+.8*Math.sin(at*711);for(const sp of data.rows[selected]){const d=at-sp;if(Math.abs(d)<.025)val+=-25*Math.exp(-Math.pow(d/.003,2))+12*Math.exp(-Math.pow((d-.007)/.005,2));}const yy=waveY+val;px?ctx.lineTo(left+px,yy):ctx.moveTo(left+px,yy);}ctx.stroke();
  const rateY=height-20,rateH=height*.1,max=Math.max(15,...data.counts);text('POPULATION RATE / SPIKES PER SECOND PER NEURON',left,rateY-rateH-10,'#91a097',width<500?8:9);ctx.beginPath();ctx.moveTo(left,rateY);for(let i=0;i<data.counts.length;i++){const at=(i+.5)*data.bin;if(at<start||at>end)continue;ctx.lineTo(x(at),rateY-data.counts[i]/max*rateH);}ctx.lineTo(right,rateY);ctx.closePath();ctx.fillStyle='#a5e7b929';ctx.fill();ctx.strokeStyle='#78b88c';ctx.stroke();
  const playX=x(t);if(playX>=left&&playX<=right){ctx.strokeStyle='#a5e7b9';ctx.lineWidth=1;ctx.shadowBlur=8;ctx.shadowColor='#a5e7b9';ctx.beginPath();ctx.moveTo(playX,top-7);ctx.lineTo(playX,rateY);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#a5e7b9';ctx.beginPath();ctx.moveTo(playX-4,top-8);ctx.lineTo(playX+4,top-8);ctx.lineTo(playX,top-3);ctx.fill();}
+ $('eegPlay').textContent=playing?'Ⅱ Pause':'▶ Play';
+ if(typeof updateEEG==='function')updateEEG(t,data.settings.mode);
  $('clock').textContent=t.toFixed(2)+' / 24 s';$('seek').value=t;
 }
 function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);$('status').textContent='Saved '+name;}
+$('eegPlay').onclick=play;$('eegReset').onclick=()=>{stop();position=0;play();};
 $('play').onclick=play;$('reset').onclick=()=>{stop();position=0;draw();};
 // Capture the slider target before stop() redraws the old playback position.
 $('seek').oninput=event=>{const target=+event.target.value;stop();position=target;draw();};
