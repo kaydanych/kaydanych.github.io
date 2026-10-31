@@ -1,4 +1,4 @@
-# Interactive tools
+# Simulations Playground
 
 A portable static website hosted with GitHub Pages. The site uses a dark background, and each tool has its own subpage.
 
@@ -40,3 +40,7 @@ The PBS–SLM tool models an ideal reflective ferroelectric pixel as a round-tri
 The PBS–SLM diagram places the laser below the PBS, the SLM on the right, and the Fourier-filter output on the left. Presets set HWP=45° for maximum input coupling. SIM phase mode uses QWP=45° and transmits 50% in either pixel state with opposite phase. Maximum-output presets use amplitude mode, pixel A, and QWP=0° (linear) or 45° (circular), yielding 100% ideal power at the output port; pixel B is dark. These are not predictions of useful diffraction-order power at the sample.
 
 The compact PBS view uses one preset selector and a pixel A/B switch. Polarization glyphs sit on the optical path; the input HWP remains at 45° in all presets. The standalone page is sized for laptop displays, without separate field plots or angle sliders.
+
+## Spike Studio
+
+`tools/spike-studio/` contains a dependency-free neural spike explorer with synchronized audio, neuron selection, schematic sleep activity, and WAV/JSON/PNG export. All data and voltage-like traces are simulated; the population rate is not EEG. Playback starts paused and pauses when the page is hidden.
