@@ -44,3 +44,15 @@ The compact PBS view uses one preset selector and a pixel A/B switch. Polarizati
 ## Spike Studio
 
 `tools/spike-studio/` contains a dependency-free neural spike explorer with synchronized audio, neuron selection, schematic sleep activity, and WAV/JSON/PNG export. All data and voltage-like traces are simulated; the population rate is not EEG. Playback starts paused and pauses when the page is hidden.
+
+## Light Pattern Lab
+
+The SLM-to-sample page is now an interactive binary-phase-grating lab with order selection, analytic two-beam interference, phase/orientation/density controls, and a single-screen nine-exposure acquisition animation. It is an idealized 2D-SIM illumination model, not a reconstruction. The previous diagram remains at `tools/slm-to-sample/classic.html`.
+
+### Acquisition and Fourier lesson
+
+Five illustrative grating presets (2D-SIM1–5) drive a looping nine-frame acquisition with play/pause/step/rewind and a fixed 400 ms display interval. Preset frequencies are 0.40, 0.55, 0.70, 0.85, 1.00 times the fluorescence detection cutoff, assuming equal excitation/emission wavelengths; these are not calibrated hardware settings.
+
+The cell lesson uses LifeAct-EGFP actin from Mo et al. (2023), CC BY 4.0. It includes an interactive frequency-to-pattern map, an actual 2D FFT / inverse FFT filtering experiment, and a same-image demonstration that adds the six shifted Fourier regions cumulatively. This is an ideal frequency-coverage illustration, not an end-to-end SIM reconstruction. The published reference is not raw measurement data or a calibrated NA simulation. See `tools/slm-to-sample/media/ATTRIBUTION.md` for provenance and processing.
+
+Run `node --test tests/slm-lab.test.cjs tests/fourier-math.test.cjs` for acquisition timing, mixing, coverage, and numerical transform checks.

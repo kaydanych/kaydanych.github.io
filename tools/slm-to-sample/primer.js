@@ -1,0 +1,41 @@
+'use strict';
+(()=>{
+const n=CellReference.n,decode=s=>Float64Array.from(atob(s),c=>c.charCodeAt(0)/255),ref=decode(CellReference.sim),re=ref.slice(),im=new Float64Array(n*n);FourierMath.fft2(re,im,n);
+function gray(id,values){const c=$(id).getContext('2d'),temp=document.createElement('canvas');temp.width=n;temp.height=n;const tc=temp.getContext('2d'),img=tc.createImageData(n,n);for(let i=0;i<values.length;i++){const v=Math.max(0,Math.min(255,values[i]*255));img.data[i*4]=img.data[i*4+1]=img.data[i*4+2]=v;img.data[i*4+3]=255;}tc.putImageData(img,0,0);c.clearRect(0,0,c.canvas.width,c.canvas.height);c.drawImage(temp,0,0,c.canvas.width,c.canvas.height);}
+gray('realWidefield',FourierMath.filter(re,im,n,24));gray('realSIM',ref);gray('referenceImage',ref);
+const spectrum=new Float64Array(n*n);let max=0;for(let y=0;y<n;y++)for(let x=0;x<n;x++){const src=((y+n/2)%n)*n+(x+n/2)%n;const v=Math.log1p(Math.hypot(re[src],im[src]));spectrum[y*n+x]=v;if(src!==0)max=Math.max(max,v);}for(let i=0;i<spectrum.length;i++)spectrum[i]=Math.min(1,spectrum[i]/max);
+let all=false;
+function drawFilter(){const cutoff=+$('cutoff').value;gray('filteredImage',all?ref:FourierMath.filter(re,im,n,cutoff));gray('cellSpectrum',spectrum);const c=$('cellSpectrum').getContext('2d');if(!all){c.fillStyle='#10141dbb';c.beginPath();c.rect(0,0,300,300);c.arc(150,150,cutoff/n*300,0,Math.PI*2,true);c.fill('evenodd');c.strokeStyle='#d4ef8a';c.lineWidth=2;c.beginPath();c.arc(150,150,cutoff/n*300,0,Math.PI*2);c.stroke();}c.fillStyle='#edf0f7';c.font='12px monospace';c.fillText('fₓ →',252,166);c.fillText('fᵧ ↑',158,18);c.fillText('0',155,146);$('cutoffOut').textContent=all?'All reference coefficients':cutoff+' cycles / crop';$('filteredCaption').textContent=all?'Reference restored · not a new reconstruction':'Inverse FFT · radius '+cutoff+' cycles / crop';}
+$('cutoff').oninput=()=>{all=false;drawFilter();};$('filterCoarse').onclick=()=>{all=false;$('cutoff').value=12;drawFilter();};$('filterFine').onclick=()=>{all=false;$('cutoff').value=64;drawFilter();};$('filterAll').onclick=()=>{all=true;drawFilter();};
+let fx=4,fy=0;
+function drawIngredient(){const c=$('ingredientMap').getContext('2d');c.fillStyle='#10141d';c.fillRect(0,0,300,300);c.strokeStyle='#394255';for(const r of [40,80,120]){c.beginPath();c.arc(150,150,r,0,Math.PI*2);c.stroke();}c.beginPath();c.moveTo(15,150);c.lineTo(285,150);c.moveTo(150,15);c.lineTo(150,285);c.stroke();c.fillStyle='#a3adbf';c.font='12px monospace';c.fillText('fₓ →',256,170);c.fillText('fᵧ ↑',160,22);c.fillText('0',155,165);for(const sign of [-1,1]){c.fillStyle='#b5a1ff';c.beginPath();c.arc(150+sign*fx*4,150-sign*fy*4,5,0,Math.PI*2);c.fill();}const pc=$('ingredientPattern').getContext('2d'),image=pc.createImageData(300,300),phase=+$('ingredientPhase').value*Math.PI/180;for(let y=0;y<300;y++)for(let x=0;x<300;x++){const v=127.5*(1+Math.cos(2*Math.PI*(fx*x/300-fy*y/300)+phase)),i=(y*300+x)*4;image.data[i]=image.data[i+1]=image.data[i+2]=v;image.data[i+3]=255;}pc.putImageData(image,0,0);const mag=Math.hypot(fx,fy);$('ingredientReadout').textContent=`fₓ = ${fx.toFixed(1)}, fᵧ = ${fy.toFixed(1)} cycles / image · spacing ≈ ${(300/mag).toFixed(1)} displayed pixels. ${mag<8?'Broad stripes: low spatial frequency.':'Fine stripes: high spatial frequency.'}`;$('ingredientMap').setAttribute('aria-valuenow',mag.toFixed(1));$('ingredientMap').setAttribute('aria-valuetext',`horizontal ${fx.toFixed(1)}, vertical ${fy.toFixed(1)} cycles per image`);}
+function pick(e){const b=$('ingredientMap').getBoundingClientRect();fx=Math.max(-30,Math.min(30,((e.clientX-b.left)/b.width*300-150)/4));fy=Math.max(-30,Math.min(30,(150-(e.clientY-b.top)/b.height*300)/4));if(Math.hypot(fx,fy)<1)fx=1;drawIngredient();}
+$('ingredientMap').onpointerdown=e=>{e.currentTarget.setPointerCapture(e.pointerId);pick(e);};$('ingredientMap').onpointermove=e=>{if(e.buttons===1)pick(e);};$('ingredientMap').onkeydown=e=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;e.preventDefault();if(e.key==='ArrowLeft')fx--;if(e.key==='ArrowRight')fx++;if(e.key==='ArrowUp')fy++;if(e.key==='ArrowDown')fy--;fx=Math.max(-30,Math.min(30,fx));fy=Math.max(-30,Math.min(30,fy));if(!fx&&!fy)fx=1;drawIngredient();};$('ingredientPhase').oninput=drawIngredient;$('coarseIngredient').onclick=()=>{fx=3;fy=0;drawIngredient();};$('fineIngredient').onclick=()=>{fx=16;fy=8;drawIngredient();};drawIngredient();drawFilter();
+const cellShifts=[[24,0],[12,21],[-12,21]],cellColors=['#d4ef8a','#70c9e9','#b5a1ff'];
+function circle(c,x,y,r,color,dashed=false){c.strokeStyle=color;c.lineWidth=1.6;c.setLineDash(dashed?[3,4]:[]);c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.stroke();c.setLineDash([]);}
+function drawCellSIM(stages){
+ const radius=24,view=120,scale=300/view,masked=new Float64Array(n*n),band=new Float64Array(n*n),shift=stages?cellShifts[stages-1]:[0,0];
+ // A compact frequency viewport makes the actual spectrum's six support regions legible.
+ for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+  const fx=x-n/2,fy=y-n/2,i=y*n+x;
+  masked[i]=spectrum[i]*FourierMath.supportWeight(fx,-fy,radius,stages);
+  const sourceX=(fx+shift[0]+n)%n,sourceY=(fy-shift[1]+n)%n;
+  const mag=Math.log1p(Math.hypot(re[sourceY*n+sourceX],im[sourceY*n+sourceX]))/max;
+  band[i]=Math.min(1,mag)*FourierMath.supportWeight(fx,fy,radius,0);
+ }
+ function zoomSpectrum(id,data){const scratch=document.createElement('canvas');scratch.width=n;scratch.height=n;const ctx=scratch.getContext('2d'),image=ctx.createImageData(n,n);for(let i=0;i<data.length;i++){const v=Math.max(0,Math.min(255,data[i]*255));image.data[i*4]=image.data[i*4+1]=image.data[i*4+2]=v;image.data[i*4+3]=255;}ctx.putImageData(image,0,0);const c=$(id).getContext('2d');c.clearRect(0,0,300,300);c.drawImage(scratch,(n-view)/2,(n-view)/2,view,view,0,0,300,300);c.fillStyle='#edf0f7';c.font='11px monospace';c.fillText('fₓ →',262,164);c.fillText('fᵧ ↑',158,14);return c;}
+ const c=zoomSpectrum('cellRecoveredSpectrum',masked);circle(c,150,150,radius*scale,'#edf0f7');circle(c,150,150,radius*2*scale,'#637086',true);
+ for(let a=0;a<stages;a++)for(const sign of [-1,1])circle(c,150+sign*cellShifts[a][0]*scale,150-sign*cellShifts[a][1]*scale,radius*scale,cellColors[a]);
+ c.fillStyle='#edf0f7';c.fillText('k꜀',153+radius*scale,146);c.fillStyle='#9aa6b8';c.fillText('2k꜀',154+radius*2*scale,145);
+ const bc=zoomSpectrum('cellCameraBand',band);circle(bc,150,150,radius*scale,'#edf0f7');
+ gray('cellRecoveredImage',FourierMath.recoverSupport(re,im,n,stages));
+ for(let a=0;a<=3;a++)$('cellStage'+a).setAttribute('aria-pressed',a===stages?'true':'false');
+ $('cellSimStatus').textContent=stages?`${stages} angle${stages>1?'s':''} · ${stages*3} phase exposures · ${stages*2} shifted regions + central disk`:'Uniform illumination · central disk only';
+ $('cellBandCaption').textContent=stages?`Angle ${(stages-1)*60}° · one separated sideband, shifted into the fixed camera disk`:'Uniform illumination · central spectrum in the camera disk';
+ $('cellResultCaption').textContent=stages?`Same actin · inverse FFT of ${stages*2+1} combined regions`:'Same actin · central-disk low-pass image';
+ $('cellSimExplanation').textContent=stages===0?'Only low spatial frequencies remain. Narrow gaps and thin filaments blend together. The central disk is the same cutoff used in the filtering example at radius 24.':stages===1?'One angle adds a pair of frequency regions. The left panel shows how one off-center patch fits inside the fixed camera disk after mixing and phase separation. In the middle, that information has been shifted back to its original position; the opposite sideband supplies the other region.':stages===2?'A second orientation adds two more regions. Compare the filament network: coverage now includes additional directions of fine spatial variation. The central detection cutoff has not changed.':'All three orientations supply six shifted regions around the central disk. The image uses their combined Fourier coefficients. Finer filament structure is retained because the support reaches approximately 2k꜀ along the illumination directions—not because the physical pupil grew.';
+}
+for(let a=0;a<=3;a++)$('cellStage'+a).onclick=()=>drawCellSIM(a);
+drawCellSIM(0);
+
+})();
