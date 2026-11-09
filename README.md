@@ -22,6 +22,7 @@ A personal homepage uses a repository named `YOUR_USERNAME.github.io`; a project
 - `tools/sim-mask-alignment/index.html`: equal-hole clipping comparison tool.
 - `tools/waveplates/index.html`: quarter-wave and half-wave polarization simulator.
 - `tools/slm-to-sample/index.html`: SLM diffraction, Fourier filtering, and objective illumination.
+- `tools/odt-lab/index.html`: biologist-facing ODT, phase delay, Ewald coverage, and experimental HeLa images.
 - `tools/pbs-slm-polarization/index.html`: polarization routing through a PBS and reflective FLC SLM.
 - `source/`: editable visualization fragments.
 
@@ -56,3 +57,13 @@ Five illustrative grating presets (2D-SIM1–5) drive a looping nine-frame acqui
 The cell lesson uses LifeAct-EGFP actin from Mo et al. (2023), CC BY 4.0. It includes an interactive frequency-to-pattern map, an actual 2D FFT / inverse FFT filtering experiment, and a same-image demonstration that adds the six shifted Fourier regions cumulatively. This is an ideal frequency-coverage illustration, not an end-to-end SIM reconstruction. The published reference is not raw measurement data or a calibrated NA simulation. See `tools/slm-to-sample/media/ATTRIBUTION.md` for provenance and processing.
 
 Run `node --test tests/slm-lab.test.cjs tests/fourier-math.test.cjs` for acquisition timing, mixing, coverage, and numerical transform checks.
+
+## Inside ODT
+
+A biology-facing explanation of optical diffraction tomography, with an automatically rotating illumination beam, live synthetic hologram, travelling-wave phase-delay demonstration, and four reconstruction stages. The phase exercise compares different thickness/index combinations with the same optical path difference. An optional walkthrough advances through the reconstruction and sweeps volume slices. Motion respects reduced-motion preferences and pauses when the document is hidden.
+
+Published fixed HeLa-cell images from Hörmann et al. (2024), Figure 6a (CC BY 4.0), ground the explanation in real measurements. Original colors, axes, scale bars and attribution are retained; see `tools/odt-lab/media/ATTRIBUTION.md`. These experimental images are distinct from the simulations.
+
+The single-frame demonstration numerically demodulates a synthetic phase cell using FFT sideband filtering. The 64³ volume independently filters a synthetic RI phantom by voxelized Ewald coverage for 1–360 azimuths on a fixed-NA cone. This is a coverage illustration, not an end-to-end inversion of the displayed holograms. Technical equations and model limits are expandable. The alignment bench is removed from this version.
+
+Run `node --test tests/odt-physics.test.cjs` for numerical field recovery, phase-delay equivalence, 3D transforms and Fourier coverage.
