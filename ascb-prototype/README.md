@@ -61,3 +61,6 @@ The top selector links SIM → SPIN → ODT using relative local paths, with the
 Verified navigation SIM → SPIN → ODT → SIM, SPIN pause and focus-depth controls, and absence of browser console errors after integration.
 
 ODT now opens with a compact live overview. `lessons/odt/overview.css` styles the visual-first layout; `tabs.js` switches Overview, Phase delay, Reconstruction, Real cells, and Optics & model panels, with keyboard navigation and hash links. The underlying optical simulations are unchanged. Browser checks covered overview rendering, tab switching, 3D reconstruction selection, phase-slider response, and console errors.
+
+
+ODT update: one continuous four-section visual walkthrough (acquisition, phase decoding, combined 3D reconstruction, and experimental cells). Tabs and reconstruction step navigation are removed; direction-count and depth sliders remain. Technical details are optional disclosures.
